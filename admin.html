@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Mural Eletrônico</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <h1><i class="fas fa-cogs"></i> Administração do Mural</h1>
+                <div class="header-actions">
+                    <a href="index.html" class="btn btn-secondary">
+                        <i class="fas fa-eye"></i> Ver Mural
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                <!-- Formulário para adicionar/editar comunicado -->
+                <section class="form-section">
+                    <h2><i class="fas fa-plus-circle"></i> Adicionar Comunicado</h2>
+                    <form id="comunicadoForm" class="comunicado-form">
+                        <input type="hidden" id="comunicadoId" />
+                        
+                        <div class="form-group">
+                            <label for="titulo">Título *</label>
+                            <input type="text" id="titulo" name="titulo" required maxlength="200" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tipo">Tipo de Comunicado *</label>
+                            <select id="tipo" name="tipo" required>
+                                <option value="texto">Texto</option>
+                                <option value="imagem">Imagem</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="conteudo">Conteúdo</label>
+                            <textarea id="conteudo" name="conteudo" rows="4" placeholder="Digite o conteúdo do comunicado..."></textarea>
+                        </div>
+
+                        <div class="form-group" id="imagemGroup" style="display: none;">
+                            <label for="imagem">Imagem</label>
+                            <div class="file-upload-area">
+                                <input type="file" id="imagem" name="imagem" accept="image/*" />
+                                <div class="file-upload-text">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Clique para selecionar uma imagem ou arraste aqui</p>
+                                    <small>Formatos aceitos: PNG, JPG, JPEG, GIF</small>
+                                </div>
+                            </div>
+                            <div id="imagePreview" class="image-preview"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ordem">Ordem de Exibição</label>
+                            <input type="number" id="ordem" name="ordem" min="0" value="0" />
+                            <small>Menor número = maior prioridade</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar Comunicado
+                            </button>
+                            <button type="button" id="cancelEdit" class="btn btn-secondary" style="display: none;">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Lista de comunicados existentes -->
+                <section class="list-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-list"></i> Comunicados Existentes</h2>
+                        <button id="refreshList" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+                    
+                    <div id="comunicadosList" class="comunicados-list">
+                        <!-- Lista será preenchida dinamicamente -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de confirmação -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Ação</h3>
+            <p id="confirmMessage">Tem certeza que deseja realizar esta ação?</p>
+            <div class="modal-actions">
+                <button id="confirmYes" class="btn btn-danger">Sim</button>
+                <button id="confirmNo" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificações -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>
+

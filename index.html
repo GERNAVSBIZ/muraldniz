@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mural Eletrônico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>Mural Eletrônico</h1>
+                <p>Comunicados e Avisos</p>
+            </div>
+            <div class="datetime" id="datetime"></div>
+        </header>
+
+        <main class="main-content">
+            <div class="carousel-container" id="carouselContainer">
+                <div class="carousel-wrapper" id="carouselWrapper">
+                    <!-- Comunicados serão inseridos aqui dinamicamente -->
+                </div>
+                <div class="carousel-indicators" id="carouselIndicators">
+                    <!-- Indicadores serão inseridos aqui dinamicamente -->
+                </div>
+            </div>
+            
+            <div class="no-content" id="noContent" style="display: none;">
+                <h2>Nenhum comunicado disponível</h2>
+                <p>Não há comunicados para exibir no momento.</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2025 Mural Eletrônico - Sistema de Comunicação</p>
+                <a href="admin.html" class="admin-link">Administração</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
