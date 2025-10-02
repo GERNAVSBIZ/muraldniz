@@ -3,118 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administração - Mural Eletrônico</title>
-    <link rel="stylesheet" href="admin-styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Administração do Mural</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --cor-primaria: #003366;
+            --cor-secundaria: #00a89d;
+            --cor-fundo: #f0f4f8;
+            --cor-texto: #333333;
+            --cor-branco: #ffffff;
+            --cor-erro: #e53e3e;
+            --cor-progresso: #2dd4bf;
+        }
+        body { background-color: var(--cor-fundo); font-family: 'Inter', sans-serif; color: var(--cor-texto); }
+        .header { background-color: var(--cor-primaria); color: var(--cor-branco); }
+        .btn-primary { background-color: var(--cor-primaria); color: var(--cor-branco); }
+        .btn-primary:hover { background-color: #004488; }
+        .btn-primary:disabled { background-color: #667b99; cursor: not-allowed; }
+        .btn-danger { background-color: var(--cor-erro); color: var(--cor-branco); }
+        .btn-danger:hover { background-color: #c53030; }
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--cor-primaria);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 51, 102, 0.2);
+        }
+        .progress-bar-bg { background-color: #e0e0e0; border-radius: 9999px; }
+        .progress-bar-fill { background-color: var(--cor-progresso); border-radius: 9999px; transition: width 0.3s ease-in-out; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="admin-container">
-        <header class="admin-header">
-            <div class="header-content">
-                <h1><i class="fas fa-cogs"></i> Administração do Mural</h1>
-                <div class="header-actions">
-                    <a href="index.html" class="btn btn-secondary">
-                        <i class="fas fa-eye"></i> Ver Mural
-                    </a>
+<body class="min-h-screen">
+
+    <header class="header shadow-md p-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-center">Painel de Administração do Mural</h1>
+        <button id="logout-button" class="hidden btn-danger font-bold py-2 px-4 rounded-lg">Sair</button>
+    </header>
+
+    <div id="auth-container" class="container mx-auto p-4 md:p-8 flex items-center justify-center">
+        <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
+            
+            <form id="login-form">
+                <h2 class="text-2xl font-bold mb-6 text-center text-[var(--cor-primaria)]">Acessar Painel</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium">Email</label>
+                        <input type="email" id="login-email" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium">Senha</label>
+                        <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                    </div>
+                    <p id="login-error" class="text-sm text-[var(--cor-erro)] hidden"></p>
+                    <button type="submit" class="btn-primary font-bold py-2 px-4 rounded-lg w-full">Entrar</button>
                 </div>
-            </div>
-        </header>
+                <p class="text-center text-sm mt-4">
+                    Não tem uma conta? <a href="#" id="show-register" class="font-medium text-[var(--cor-secundaria)] hover:underline">Cadastre-se</a>
+                </p>
+            </form>
 
-        <main class="admin-main">
-            <div class="admin-content">
-                <!-- Formulário para adicionar/editar comunicado -->
-                <section class="form-section">
-                    <h2><i class="fas fa-plus-circle"></i> Adicionar Comunicado</h2>
-                    <form id="comunicadoForm" class="comunicado-form">
-                        <input type="hidden" id="comunicadoId" />
-                        
-                        <div class="form-group">
-                            <label for="titulo">Título *</label>
-                            <input type="text" id="titulo" name="titulo" required maxlength="200" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="tipo">Tipo de Comunicado *</label>
-                            <select id="tipo" name="tipo" required>
-                                <option value="texto">Texto</option>
-                                <option value="imagem">Imagem</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="conteudo">Conteúdo</label>
-                            <textarea id="conteudo" name="conteudo" rows="4" placeholder="Digite o conteúdo do comunicado..."></textarea>
-                        </div>
-
-                        <div class="form-group" id="imagemGroup" style="display: none;">
-                            <label for="imagem">Imagem</label>
-                            <div class="file-upload-area">
-                                <input type="file" id="imagem" name="imagem" accept="image/*" />
-                                <div class="file-upload-text">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Clique para selecionar uma imagem ou arraste aqui</p>
-                                    <small>Formatos aceitos: PNG, JPG, JPEG, GIF</small>
-                                </div>
-                            </div>
-                            <div id="imagePreview" class="image-preview"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="ordem">Ordem de Exibição</label>
-                            <input type="number" id="ordem" name="ordem" min="0" value="0" />
-                            <small>Menor número = maior prioridade</small>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Salvar Comunicado
-                            </button>
-                            <button type="button" id="cancelEdit" class="btn btn-secondary" style="display: none;">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                <!-- Lista de comunicados existentes -->
-                <section class="list-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-list"></i> Comunicados Existentes</h2>
-                        <button id="refreshList" class="btn btn-secondary">
-                            <i class="fas fa-sync-alt"></i> Atualizar
-                        </button>
+            <form id="register-form" class="hidden">
+                 <h2 class="text-2xl font-bold mb-6 text-center text-[var(--cor-primaria)]">Criar Conta</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="register-email" class="block text-sm font-medium">Email</label>
+                        <input type="email" id="register-email" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
                     </div>
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium">Senha (mínimo 6 caracteres)</label>
+                        <input type="password" id="register-password" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                    </div>
+                    <p id="register-error" class="text-sm text-[var(--cor-erro)] hidden"></p>
+                    <button type="submit" class="btn-primary font-bold py-2 px-4 rounded-lg w-full">Cadastrar</button>
+                </div>
+                 <p class="text-center text-sm mt-4">
+                    Já tem uma conta? <a href="#" id="show-login" class="font-medium text-[var(--cor-secundaria)] hover:underline">Faça login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+    
+    <main id="admin-content" class="hidden container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-[var(--cor-primaria)] border-b pb-2">Adicionar Novo Comunicado</h2>
+            <form id="add-comunicado-form" class="space-y-4">
+                <div>
+                    <label for="titulo" class="block text-sm font-medium">Título</label>
+                    <input type="text" id="titulo" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                </div>
+                <div>
+                    <label for="type" class="block text-sm font-medium">Tipo de Comunicado</label>
+                    <select id="type" class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                        <option value="text_image" selected>Texto e Imagem</option>
+                        <option value="iframe">Página Web (iframe)</option>
+                    </select>
+                </div>
+
+                <div id="fields-text-image" class="space-y-4">
+                    <div>
+                        <label for="imageUpload" class="block text-sm font-medium">Imagem (Opcional)</label>
+                        <input type="file" id="imageUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[var(--cor-secundaria)] file:text-white hover:file:bg-opacity-80">
+                    </div>
+                     <div class="flex items-center">
+                        <input type="checkbox" id="imageOnly" class="h-4 w-4 rounded border-gray-300 text-[var(--cor-primaria)] focus:ring-[var(--cor-primaria)]">
+                        <label for="imageOnly" class="ml-2 block text-sm">Mostrar somente a imagem (sem texto)</label>
+                    </div>
+                    <div id="texto-container">
+                        <label for="texto" class="block text-sm font-medium">Texto do Comunicado</label>
+                        <textarea id="texto" rows="4" class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300"></textarea>
+                    </div>
+                    <div id="upload-progress-container" class="hidden space-y-2">
+                        <label class="block text-sm font-medium">Progresso do Upload</label>
+                        <div class="progress-bar-bg w-full h-2.5">
+                            <div id="upload-progress-bar" class="progress-bar-fill h-2.5" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fields-iframe" class="hidden space-y-4">
+                    <div>
+                        <label for="url" class="block text-sm font-medium">URL da Página Web</label>
+                        <input type="url" id="url" class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300" placeholder="https://site-a-ser-exibido.com">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="duracao" class="block text-sm font-medium">Duração (em segundos)</label>
+                    <input type="number" id="duracao" value="10" min="1" class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
+                </div>
+                <button type="submit" id="submit-button" class="btn-primary font-bold py-2 px-4 rounded-lg w-full transition-transform transform hover:scale-105">
+                    Adicionar Comunicado
+                </button>
+                 <p id="form-error" class="text-sm text-[var(--cor-erro)] hidden"></p>
+            </form>
+        </section>
+
+        <section class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-[var(--cor-primaria)] border-b pb-2">Comunicados Atuais</h2>
+            <div id="comunicados-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <p id="loading-list">Aguardando login...</p>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        // --- MÓDULOS FIREBASE ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Módulos de autenticação adicionados
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        
+        // --- ELEMENTOS DO DOM ---
+        const authContainer = document.getElementById('auth-container');
+        const adminContent = document.getElementById('admin-content');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const logoutButton = document.getElementById('logout-button');
+        const showRegisterLink = document.getElementById('show-register');
+        const showLoginLink = document.getElementById('show-login');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+        const formError = document.getElementById('form-error');
+
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        function clearError(element) {
+            element.textContent = '';
+            element.classList.add('hidden');
+        }
+
+        // --- INICIALIZAÇÃO DO FIREBASE ---
+        try {
+            const userFirebaseConfig = {
+                apiKey: "AIzaSyCG-HiSw5h5Soir5c5z3iBbE6UoA6EuuBA",
+                authDomain: "mural-eletronico-nav.firebaseapp.com",
+                projectId: "mural-eletronico-nav",
+                storageBucket: "mural-eletronico-nav.firebasestorage.app", 
+                messagingSenderId: "715537886137",
+                appId: "1:715537886137:web:f715e8fc9438df82722468",
+                measurementId: "G-T2LLX-J94V"
+            };
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
+            if (!firebaseConfig || !firebaseConfig.apiKey) throw new Error("Configuração do Firebase não encontrada.");
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-mural-app';
+            const app = initializeApp(firebaseConfig);
+            
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            const storage = getStorage(app);
+            let comunicadosCollection;
+
+            // --- LÓGICA DE CONTROLE DE EXIBIÇÃO ---
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+
+            // --- OBSERVADOR DE AUTENTICAÇÃO ---
+            // Este é o "porteiro". Ele verifica se o usuário está logado ou não.
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    // Se o usuário ESTÁ logado:
+                    authContainer.classList.add('hidden'); // Esconde a tela de login
+                    adminContent.classList.remove('hidden'); // Mostra o painel de admin
+                    logoutButton.classList.remove('hidden'); // Mostra o botão de sair
                     
-                    <div id="comunicadosList" class="comunicados-list">
-                        <!-- Lista será preenchida dinamicamente -->
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
+                    document.getElementById('loading-list').textContent = 'Carregando lista...';
+                    comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
+                    loadComunicados();
+                } else {
+                    // Se o usuário NÃO ESTÁ logado:
+                    authContainer.classList.remove('hidden'); // Mostra a tela de login
+                    adminContent.classList.add('hidden'); // Esconde o painel de admin
+                    logoutButton.classList.add('hidden'); // Esconde o botão de sair
+                    document.getElementById('loading-list').textContent = 'Aguardando login...';
+                }
+            });
 
-    <!-- Modal de confirmação -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Ação</h3>
-            <p id="confirmMessage">Tem certeza que deseja realizar esta ação?</p>
-            <div class="modal-actions">
-                <button id="confirmYes" class="btn btn-danger">Sim</button>
-                <button id="confirmNo" class="btn btn-secondary">Cancelar</button>
-            </div>
-        </div>
-    </div>
+            // --- EVENT LISTENERS DE FORMULÁRIOS DE AUTH ---
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = registerForm['register-email'].value;
+                const password = registerForm['register-password'].value;
+                clearError(registerError);
 
-    <!-- Toast para notificações -->
-    <div id="toast" class="toast">
-        <div class="toast-content">
-            <i class="toast-icon"></i>
-            <span class="toast-message"></span>
-        </div>
-    </div>
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    registerForm.reset();
+                    // O onAuthStateChanged vai cuidar de redirecionar a tela
+                } catch (error) {
+                    showError(registerError, 'Erro ao cadastrar. Verifique o e-mail e a senha (mín. 6 caracteres).');
+                    console.error("Erro de cadastro:", error.message);
+                }
+            });
 
-    <script src="admin-script.js"></script>
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginForm['login-email'].value;
+                const password = loginForm['login-password'].value;
+                clearError(loginError);
+
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    loginForm.reset();
+                    // O onAuthStateChanged vai cuidar de redirecionar a tela
+                } catch (error) {
+                    showError(loginError, 'E-mail ou senha inválidos.');
+                    console.error("Erro de login:", error.message);
+                }
+            });
+
+            logoutButton.addEventListener('click', async () => {
+                await signOut(auth);
+            });
+
+            // --- LÓGICA DO PAINEL DE ADMIN (CÓDIGO ORIGINAL MODIFICADO) ---
+            const typeSelect = document.getElementById('type');
+            const fieldsTextImage = document.getElementById('fields-text-image');
+            const fieldsIframe = document.getElementById('fields-iframe');
+            typeSelect.addEventListener('change', () => {
+                fieldsTextImage.classList.toggle('hidden', typeSelect.value === 'iframe');
+                fieldsIframe.classList.toggle('hidden', typeSelect.value !== 'iframe');
+            });
+
+            const imageOnlyCheckbox = document.getElementById('imageOnly');
+            const textoContainer = document.getElementById('texto-container');
+            imageOnlyCheckbox.addEventListener('change', () => {
+                textoContainer.classList.toggle('hidden', imageOnlyCheckbox.checked);
+            });
+
+            const form = document.getElementById('add-comunicado-form');
+            const submitButton = document.getElementById('submit-button');
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearError(formError);
+                if (!comunicadosCollection) return showError(formError, "Não foi possível conectar ao banco de dados.");
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'Enviando...';
+
+                const newComunicado = {
+                    titulo: form.titulo.value.trim(),
+                    type: form.type.value,
+                    duracao: form.duracao.value,
+                    createdAt: new Date(),
+                    imageUrl: '',
+                    imageOnly: form.imageOnly.checked
+                };
+
+                const file = form.imageUpload.files[0];
+
+                if (newComunicado.type === 'text_image' && file) {
+                    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+                    const uploadTask = uploadBytesResumable(storageRef, file);
+
+                    progressContainer.classList.remove('hidden');
+
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            progressBar.style.width = progress + '%';
+                        }, 
+                        (error) => {
+                            console.error("Upload failed:", error);
+                            showError(formError, "O upload da imagem falhou.");
+                            resetFormState();
+                        }, 
+                        async () => {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            newComunicado.imageUrl = downloadURL;
+                            newComunicado.texto = newComunicado.imageOnly ? '' : form.texto.value.trim();
+                            saveComunicado(newComunicado);
+                        }
+                    );
+                } else if (newComunicado.type === 'iframe') {
+                    newComunicado.url = form.url.value.trim();
+                    if (!newComunicado.url) {
+                        showError(formError, "A URL é obrigatória para o tipo Página Web.");
+                        resetFormState();
+                        return;
+                    }
+                    saveComunicado(newComunicado);
+                } else {
+                    if (newComunicado.imageOnly) {
+                        showError(formError, "Para 'Somente Imagem', o upload de um arquivo de imagem é obrigatório.");
+                        resetFormState();
+                        return;
+                    }
+                    newComunicado.texto = form.texto.value.trim();
+                    saveComunicado(newComunicado);
+                }
+            });
+
+            async function saveComunicado(comunicadoData) {
+                 try {
+                    await addDoc(comunicadosCollection, comunicadoData);
+                    resetFormState();
+                } catch (error) {
+                    console.error("Erro ao adicionar:", error);
+                    showError(formError, "Não foi possível salvar o comunicado.");
+                    resetFormState();
+                }
+            }
+            
+            function resetFormState() {
+                form.reset();
+                typeSelect.dispatchEvent(new Event('change'));
+                imageOnlyCheckbox.dispatchEvent(new Event('change'));
+                submitButton.disabled = false;
+                submitButton.textContent = 'Adicionar Comunicado';
+                progressContainer.classList.add('hidden');
+                progressBar.style.width = '0%';
+            }
+
+            function loadComunicados() {
+                if (!comunicadosCollection) return;
+                const q = query(collection(db, `artifacts/${appId}/public/data/comunicados`));
+                onSnapshot(q, (snapshot) => {
+                    const listContainer = document.getElementById('comunicados-list');
+                    if (snapshot.empty) return listContainer.innerHTML = '<p>Nenhum comunicado cadastrado.</p>';
+                    listContainer.innerHTML = '';
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const div = document.createElement('div');
+                        div.className = 'border p-4 rounded-lg bg-gray-50 flex justify-between items-start';
+                        
+                        let typeLabel = data.type === 'iframe' ? 'Página Web' : 'Texto/Imagem';
+                        if (data.imageOnly) typeLabel = 'Somente Imagem';
+                        
+                        let description = data.url ? data.url : (data.texto || '').substring(0, 50) + '...';
+                        if (data.imageOnly) description = 'Exibição de imagem em tela cheia.';
+
+                        div.innerHTML = `
+                            <div>
+                                <h3 class="font-bold">${data.titulo}</h3>
+                                <p class="text-sm text-gray-600 break-all">${description}</p>
+                                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full mt-2 inline-block">${typeLabel}</span>
+                            </div>
+                            <button data-id="${docSnap.id}" class="delete-btn btn-danger text-sm py-1 px-3 rounded-md flex-shrink-0 ml-4">Excluir</button>
+                        `;
+                        listContainer.appendChild(div);
+                    });
+
+                    listContainer.querySelectorAll('.delete-btn').forEach(button => {
+                        button.addEventListener('click', async (e) => {
+                            const id = e.target.dataset.id;
+                            if (confirm('Tem certeza que deseja excluir este comunicado?')) {
+                                await deleteDoc(doc(db, `artifacts/${appId}/public/data/comunicados`, id));
+                            }
+                        });
+                    });
+                }, (error) => {
+                    console.error("Erro ao carregar comunicados: ", error);
+                    document.getElementById('loading-list').textContent = 'Erro ao carregar comunicados.';
+                });
+            }
+
+        } catch(error) {
+            console.error("Erro de inicialização:", error);
+            // Mostra um erro mais genérico na tela de login se a inicialização falhar
+            showError(loginError, 'Falha ao conectar com o servidor. Verifique a configuração.');
+            showError(registerError, 'Falha ao conectar com o servidor. Verifique a configuração.');
+        }
+    </script>
 </body>
 </html>
-
