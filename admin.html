@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administração do Mural</title>
-    <script src="https://cdn/tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
             --cor-primaria: #003366;
@@ -157,7 +157,6 @@
     </main>
 
     <script type="module">
-        // ALTERAÇÃO: Importa a função 'where' para criar filtros na consulta
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, setDoc, getDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
@@ -236,7 +235,6 @@
                         const userData = userDocSnap.data();
                         document.getElementById('unidade').value = userData.unidade;
                         
-                        // ALTERAÇÃO: Passa a unidade do usuário para a função que carrega os comunicados
                         loadComunicados(userData.unidade);
                     } else {
                         console.log("Documento do usuário não encontrado no Firestore!");
@@ -397,7 +395,6 @@
                 progressBar.style.width = '0%';
             }
 
-            // ALTERAÇÃO: A função agora recebe a unidade do usuário como parâmetro
             function loadComunicados(unidadeDoUsuario) {
                 if (!unidadeDoUsuario) {
                     document.getElementById('comunicados-list').innerHTML = '<p>Unidade do usuário não encontrada.</p>';
@@ -407,7 +404,6 @@
                 document.getElementById('loading-list').textContent = `Carregando comunicados para ${unidadeDoUsuario}...`;
 
                 const comunicadosRef = collection(db, `artifacts/${appId}/public/data/comunicados`);
-                // ALTERAÇÃO: A consulta agora usa 'where' para filtrar pela unidade do usuário
                 const q = query(comunicadosRef, where("unidade", "==", unidadeDoUsuario));
 
                 onSnapshot(q, (snapshot) => {
