@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mural Eletrônico de Comunicados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --cor-primaria: #003366; /* Azul Escuro */
+            --cor-secundaria: #00a89d; /* Verde-água */
+            --cor-fundo: #f0f4f8;
+            --cor-texto: #333333;
+            --cor-branco: #ffffff;
+            --cor-erro: #e53e3e;
+        }
+
+        body {
+            background-color: var(--cor-fundo);
+            font-family: 'Inter', sans-serif;
+            color: var(--cor-texto);
+            overflow: hidden;
+        }
+
+        .header { background-color: var(--cor-primaria); color: var(--cor-branco); }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .slide.active { opacity: 1; }
+
+        .slide-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            height: 80%;
+            align-items: center;
+        }
+
+        .slide-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .slide-text-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            background-color: var(--cor-branco);
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .slide-text-content h2 {
+            color: var(--cor-primaria);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            border-left: 5px solid var(--cor-secundaria);
+            padding-left: 1rem;
+        }
+
+        .slide-text-content p { font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap; }
+        
+        @media (min-width: 768px) {
+            .slide-content.has-image { grid-template-columns: 1fr 1fr; }
+        }
+        
+        #loading-message, #empty-message, #error-message { color: var(--cor-primaria); font-size: 1.5rem; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="flex flex-col h-screen">
+
+    <header class="header shadow-md p-4 flex justify-between items-center">
+        <h1 id="header-title" class="text-2xl font-bold">Mural de Comunicados</h1>
+        <div id="clock" class="text-xl"></div>
+    </header>
+
+    <main id="carousel-container" class="flex-grow flex items-center justify-center p-4 md:p-8 relative w-full h-full text-center">
+        <div id="loading-message">Carregando comunicados...</div>
+        <div id="error-message" class="hidden text-[var(--cor-erro)]"></div>
+        <div id="empty-message" class="hidden">
+            <h2 class="text-3xl font-bold">Nenhum comunicado no momento.</h2>
+            <p class="text-xl mt-2">Adicione novos avisos no painel de administração.</p>
+        </div>
+    </main>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // ALTERAÇÃO: Importa 'where' para permitir a filtragem
+        import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const carouselContainer = document.getElementById('carousel-container');
+        const loadingMessage = document.getElementById('loading-message');
+        const emptyMessage = document.getElementById('empty-message');
+        const errorMessage = document.getElementById('error-message');
+        const headerTitle = document.getElementById('header-title');
+
+        function showError(message) {
+            loadingMessage.classList.add('hidden');
+            emptyMessage.classList.add('hidden');
+            carouselContainer.innerHTML = '';
+            errorMessage.classList.remove('hidden');
+            errorMessage.innerHTML = `<strong>Erro:</strong><br>${message}`;
+        }
+
+        try {
+            // ALTERAÇÃO: Lógica para pegar a unidade da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const unidade = urlParams.get('unidade');
+
+            // ALTERAÇÃO: Verifica se o parâmetro 'unidade' foi fornecido na URL
+            if (!unidade) {
+                showError("Nenhuma unidade especificada. Adicione '?unidade=SEUCODIGO' ao final da URL.");
+                throw new Error("Parâmetro 'unidade' ausente na URL.");
+            }
+
+            // ALTERAÇÃO: Atualiza o título do cabeçalho com a unidade atual
+            headerTitle.textContent = `Mural de Comunicados - ${unidade.toUpperCase()}`;
+
+            const userFirebaseConfig = {
+                apiKey: "AIzaSyCG-HiSw5h5Soir5c5z3iBbE6UoA6EuuBA",
+				authDomain: "mural-eletronico-nav.firebaseapp.com",
+				projectId: "mural-eletronico-nav",
+				storageBucket: "mural-eletronico-nav.firebasestorage.app",
+				messagingSenderId: "715537886137",
+				appId: "1:715537886137:web:f715e8fc9438df82722468",
+				measurementId: "G-T2LLX-J94V"
+            };
+
+            const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                ? JSON.parse(__firebase_config) 
+                : userFirebaseConfig;
+
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                throw new Error("A configuração do Firebase não foi encontrada.");
+            }
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-mural-app';
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            let slides = [];
+            let currentSlideIndex = 0;
+            let slideInterval;
+
+            function renderSlides(comunicados) {
+                carouselContainer.innerHTML = '';
+                slides = [];
+
+                if (comunicados.length === 0) {
+                    loadingMessage.classList.add('hidden');
+                    // ALTERAÇÃO: Mensagem personalizada quando não há comunicados para a unidade
+                    emptyMessage.querySelector('h2').textContent = `Nenhum comunicado para a unidade ${unidade.toUpperCase()}.`;
+                    emptyMessage.querySelector('p').textContent = 'Adicione novos avisos no painel de administração.';
+                    emptyMessage.classList.remove('hidden');
+                    if (slideInterval) clearInterval(slideInterval);
+                    return;
+                }
+                
+                loadingMessage.classList.add('hidden');
+                emptyMessage.classList.add('hidden');
+
+                comunicados.forEach((comunicado, index) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'slide';
+                    if (index === 0) slide.classList.add('active');
+
+                    if (comunicado.type === 'iframe') {
+                         slide.innerHTML = `
+                            <div class="flex flex-col w-full h-full max-w-7xl bg-white p-4 rounded-lg shadow-lg">
+                                <h2 class="text-2xl font-bold text-[var(--cor-primaria)] mb-2 pb-2 border-b">${comunicado.titulo}</h2>
+                                <iframe src="${comunicado.url}" class="w-full h-full border-0 rounded" title="${comunicado.titulo}"></iframe>
+                            </div>
+                        `;
+                    } else if (comunicado.imageOnly) { // ALTERAÇÃO: Layout específico para "Somente Imagem"
+                         slide.innerHTML = `<img src="${comunicado.imageUrl}" alt="${comunicado.titulo}" class="w-full h-full object-contain">`;
+                    }
+                    else {
+                        const hasImage = comunicado.imageUrl && comunicado.imageUrl.trim() !== '';
+                        const slideContent = document.createElement('div');
+                        slideContent.className = 'slide-content' + (hasImage ? ' has-image' : '');
+                        let contentHTML = `
+                            <div class="slide-text-content">
+                                <h2>${comunicado.titulo}</h2>
+                                <p>${comunicado.texto}</p>
+                            </div>
+                            ${hasImage ? `
+                            <div class="flex items-center justify-center h-full">
+                               <img src="${comunicado.imageUrl}" alt="Imagem do comunicado" class="slide-image" onerror="this.style.display='none'">
+                            </div>` : ''}
+                        `;
+                        slideContent.innerHTML = contentHTML;
+                        slide.appendChild(slideContent);
+                    }
+                    carouselContainer.appendChild(slide);
+                    slides.push(slide);
+                });
+                
+                startCarousel(comunicados);
+            }
+
+            function showNextSlide(comunicados) {
+                if (slides.length <= 1) return;
+                slides[currentSlideIndex].classList.remove('active');
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                slides[currentSlideIndex].classList.add('active');
+                
+                const currentComunicado = comunicados[currentSlideIndex];
+                const duration = (parseInt(currentComunicado.duracao, 10) || 10) * 1000;
+                
+                clearInterval(slideInterval);
+                slideInterval = setInterval(() => showNextSlide(comunicados), duration);
+            }
+
+            function startCarousel(comunicados) {
+                if (slideInterval) clearInterval(slideInterval);
+                currentSlideIndex = 0;
+                 if (slides.length > 0 && slides[0]) {
+                    slides.forEach(s => s.classList.remove('active'));
+                    slides[0].classList.add('active');
+                }
+
+                if (comunicados.length > 0) {
+                     const firstDuration = (parseInt(comunicados[0].duracao, 10) || 10) * 1000;
+                     if (comunicados.length > 1) {
+                        slideInterval = setInterval(() => showNextSlide(comunicados), firstDuration);
+                     }
+                }
+            }
+            
+            const comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
+            // ALTERAÇÃO: A consulta agora filtra os comunicados pelo campo 'unidade'
+            const q = query(comunicadosCollection, where("unidade", "==", unidade.toUpperCase()));
+
+            onSnapshot(q, (snapshot) => {
+                const comunicados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderSlides(comunicados);
+            }, (error) => {
+                console.error("Erro ao buscar comunicados: ", error);
+                showError("Não foi possível carregar os comunicados do banco de dados.");
+            });
+
+        } catch(error) {
+            console.error("Erro de inicialização:", error);
+            // Não chama showError aqui pois ele já foi chamado se a unidade estiver faltando
+        }
+
+        const clockElement = document.getElementById('clock');
+        function updateClock() {
+            const now = new Date();
+            clockElement.textContent = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
