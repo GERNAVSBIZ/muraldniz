@@ -179,6 +179,9 @@
         const registerError = document.getElementById('register-error');
         const formError = document.getElementById('form-error');
 
+        // ALTERAÇÃO 1: Variável para guardar a função de "desligar" o ouvinte
+        let unsubscribeListener = null;
+
         function showError(element, message) {
             element.textContent = message;
             element.classList.remove('hidden');
@@ -228,25 +231,30 @@
                     adminContent.classList.remove('hidden');
                     logoutButton.classList.remove('hidden');
                     
+                    comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
+
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
 
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
                         document.getElementById('unidade').value = userData.unidade;
-                        
                         loadComunicados(userData.unidade);
                     } else {
                         console.log("Documento do usuário não encontrado no Firestore!");
                         document.getElementById('loading-list').textContent = 'Erro: dados do usuário não encontrados.';
                     }
-                    
-                    comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
                 } else {
+                    // ALTERAÇÃO 2: Se o usuário sair, desliga o ouvinte
+                    if (unsubscribeListener) {
+                        unsubscribeListener();
+                        unsubscribeListener = null;
+                    }
                     authContainer.classList.remove('hidden');
                     adminContent.classList.add('hidden');
                     logoutButton.classList.add('hidden');
                     document.getElementById('loading-list').textContent = 'Aguardando login...';
+                    document.getElementById('comunicados-list').innerHTML = '<p>Aguardando login...</p>';
                 }
             });
 
@@ -396,6 +404,11 @@
             }
 
             function loadComunicados(unidadeDoUsuario) {
+                // ALTERAÇÃO 3: Desliga qualquer ouvinte anterior antes de criar um novo
+                if (unsubscribeListener) {
+                    unsubscribeListener();
+                }
+                
                 if (!unidadeDoUsuario) {
                     document.getElementById('comunicados-list').innerHTML = '<p>Unidade do usuário não encontrada.</p>';
                     return;
@@ -406,7 +419,8 @@
                 const comunicadosRef = collection(db, `artifacts/${appId}/public/data/comunicados`);
                 const q = query(comunicadosRef, where("unidade", "==", unidadeDoUsuario));
 
-                onSnapshot(q, (snapshot) => {
+                // ALTERAÇÃO 4: Guarda a função de "desligar" na nossa variável
+                unsubscribeListener = onSnapshot(q, (snapshot) => {
                     const listContainer = document.getElementById('comunicados-list');
                     if (snapshot.empty) {
                         listContainer.innerHTML = `<p>Nenhum comunicado cadastrado para a unidade ${unidadeDoUsuario}.</p>`;
