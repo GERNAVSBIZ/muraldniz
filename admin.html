@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administração do Mural</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn/tailwindcss.com"></script>
     <style>
         :root {
             --cor-primaria: #003366;
@@ -157,9 +157,9 @@
     </main>
 
     <script type="module">
-        // ALTERAÇÃO: Importa setDoc e getDoc do firestore
+        // ALTERAÇÃO: Importa a função 'where' para criar filtros na consulta
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, setDoc, getDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
             getAuth, 
             onAuthStateChanged, 
@@ -223,28 +223,27 @@
                 loginForm.classList.remove('hidden');
             });
 
-            // ALTERAÇÃO: A função onAuthStateChanged agora busca os dados do usuário
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     authContainer.classList.add('hidden');
                     adminContent.classList.remove('hidden');
                     logoutButton.classList.remove('hidden');
                     
-                    // ALTERAÇÃO: Busca o documento do usuário no Firestore para pegar sua unidade
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
 
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
-                        // Preenche automaticamente o campo de unidade do formulário
                         document.getElementById('unidade').value = userData.unidade;
+                        
+                        // ALTERAÇÃO: Passa a unidade do usuário para a função que carrega os comunicados
+                        loadComunicados(userData.unidade);
                     } else {
                         console.log("Documento do usuário não encontrado no Firestore!");
+                        document.getElementById('loading-list').textContent = 'Erro: dados do usuário não encontrados.';
                     }
                     
-                    document.getElementById('loading-list').textContent = 'Carregando lista...';
                     comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
-                    loadComunicados();
                 } else {
                     authContainer.classList.remove('hidden');
                     adminContent.classList.add('hidden');
@@ -253,7 +252,6 @@
                 }
             });
 
-            // ALTERAÇÃO: O formulário de registro agora salva a unidade do usuário
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const unidade = registerForm['register-unidade'].value.trim().toUpperCase();
@@ -267,18 +265,13 @@
                 }
 
                 try {
-                    // 1. Cria o usuário na autenticação
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
-
-                    // 2. Salva a informação extra (unidade) no Firestore
                     await setDoc(doc(db, "users", user.uid), {
                         unidade: unidade,
                         email: user.email
                     });
-                    
                     registerForm.reset();
-                    // O onAuthStateChanged vai cuidar da tela
                 } catch (error) {
                     if (error.code === 'auth/email-already-in-use') {
                          showError(registerError, 'Este e-mail já está cadastrado.');
@@ -293,7 +286,6 @@
                 const email = loginForm['login-email'].value;
                 const password = loginForm['login-password'].value;
                 clearError(loginError);
-
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
                     loginForm.reset();
@@ -360,10 +352,7 @@
                             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                             progressBar.style.width = progress + '%';
                         }, 
-                        (error) => {
-                            showError(formError, "O upload da imagem falhou.");
-                            resetFormState();
-                        }, 
+                        (error) => { showError(formError, "O upload da imagem falhou."); resetFormState(); }, 
                         async () => {
                             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                             newComunicado.imageUrl = downloadURL;
@@ -373,18 +362,10 @@
                     );
                 } else if (newComunicado.type === 'iframe') {
                     newComunicado.url = form.url.value.trim();
-                    if (!newComunicado.url) {
-                        showError(formError, "A URL é obrigatória para o tipo Página Web.");
-                        resetFormState();
-                        return;
-                    }
+                    if (!newComunicado.url) { showError(formError, "A URL é obrigatória para o tipo Página Web."); resetFormState(); return; }
                     saveComunicado(newComunicado);
                 } else {
-                    if (newComunicado.imageOnly) {
-                        showError(formError, "Para 'Somente Imagem', o upload de um arquivo de imagem é obrigatório.");
-                        resetFormState();
-                        return;
-                    }
+                    if (newComunicado.imageOnly) { showError(formError, "Para 'Somente Imagem', o upload de um arquivo de imagem é obrigatório."); resetFormState(); return; }
                     newComunicado.texto = form.texto.value.trim();
                     saveComunicado(newComunicado);
                 }
@@ -393,7 +374,6 @@
             async function saveComunicado(comunicadoData) {
                  try {
                     await addDoc(comunicadosCollection, comunicadoData);
-                    // Não reseta mais o formulário todo, para manter a unidade do usuário
                     form.titulo.value = '';
                     form.type.value = 'text_image';
                     form.imageUpload.value = '';
@@ -401,7 +381,7 @@
                     form.texto.value = '';
                     form.url.value = '';
                     form.duracao.value = '10';
-                    resetFormState(); // Chama para reabilitar botão e esconder progresso
+                    resetFormState();
                 } catch (error) {
                     showError(formError, "Não foi possível salvar o comunicado.");
                     resetFormState();
@@ -409,7 +389,6 @@
             }
             
             function resetFormState() {
-                // Modificado para não limpar o campo unidade
                 typeSelect.dispatchEvent(new Event('change'));
                 imageOnlyCheckbox.dispatchEvent(new Event('change'));
                 submitButton.disabled = false;
@@ -418,18 +397,29 @@
                 progressBar.style.width = '0%';
             }
 
-            function loadComunicados() {
-                if (!comunicadosCollection) return;
-                const q = query(collection(db, `artifacts/${appId}/public/data/comunicados`));
+            // ALTERAÇÃO: A função agora recebe a unidade do usuário como parâmetro
+            function loadComunicados(unidadeDoUsuario) {
+                if (!unidadeDoUsuario) {
+                    document.getElementById('comunicados-list').innerHTML = '<p>Unidade do usuário não encontrada.</p>';
+                    return;
+                }
+                
+                document.getElementById('loading-list').textContent = `Carregando comunicados para ${unidadeDoUsuario}...`;
+
+                const comunicadosRef = collection(db, `artifacts/${appId}/public/data/comunicados`);
+                // ALTERAÇÃO: A consulta agora usa 'where' para filtrar pela unidade do usuário
+                const q = query(comunicadosRef, where("unidade", "==", unidadeDoUsuario));
+
                 onSnapshot(q, (snapshot) => {
                     const listContainer = document.getElementById('comunicados-list');
-                    if (snapshot.empty) return listContainer.innerHTML = '<p>Nenhum comunicado cadastrado.</p>';
+                    if (snapshot.empty) {
+                        listContainer.innerHTML = `<p>Nenhum comunicado cadastrado para a unidade ${unidadeDoUsuario}.</p>`;
+                        return;
+                    }
                     
                     const comunicados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     comunicados.sort((a, b) => {
-                        if (a.unidade < b.unidade) return -1;
-                        if (a.unidade > b.unidade) return 1;
                         const dateA = a.createdAt.toDate ? a.createdAt.toDate() : a.createdAt;
                         const dateB = b.createdAt.toDate ? b.createdAt.toDate() : b.createdAt;
                         return dateB - dateA;
@@ -442,7 +432,6 @@
                         
                         let typeLabel = data.type === 'iframe' ? 'Página Web' : 'Texto/Imagem';
                         if (data.imageOnly) typeLabel = 'Somente Imagem';
-                        
                         let description = data.url ? data.url : (data.texto || '').substring(0, 50) + '...';
                         if (data.imageOnly) description = 'Exibição de imagem em tela cheia.';
                         
@@ -469,6 +458,7 @@
                         });
                     });
                 }, (error) => {
+                    console.error("Erro ao carregar comunicados: ", error);
                     document.getElementById('loading-list').textContent = 'Erro ao carregar comunicados.';
                 });
             }
