@@ -66,6 +66,10 @@
                  <h2 class="text-2xl font-bold mb-6 text-center text-[var(--cor-primaria)]">Criar Conta</h2>
                 <div class="space-y-4">
                     <div>
+                        <label for="register-unidade" class="block text-sm font-medium">Sua Unidade (Ex: DNIZ)</label>
+                        <input type="text" id="register-unidade" required maxlength="4" class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300 uppercase" placeholder="CÓDIGO DE 4 DÍGITOS">
+                    </div>
+                    <div>
                         <label for="register-email" class="block text-sm font-medium">Email</label>
                         <input type="email" id="register-email" required class="mt-1 block w-full px-3 py-2 rounded-md shadow-sm border border-gray-300">
                     </div>
@@ -153,8 +157,9 @@
     </main>
 
     <script type="module">
+        // ALTERAÇÃO: Importa setDoc e getDoc do firestore
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
             getAuth, 
             onAuthStateChanged, 
@@ -218,11 +223,24 @@
                 loginForm.classList.remove('hidden');
             });
 
-            onAuthStateChanged(auth, user => {
+            // ALTERAÇÃO: A função onAuthStateChanged agora busca os dados do usuário
+            onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     authContainer.classList.add('hidden');
                     adminContent.classList.remove('hidden');
                     logoutButton.classList.remove('hidden');
+                    
+                    // ALTERAÇÃO: Busca o documento do usuário no Firestore para pegar sua unidade
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        // Preenche automaticamente o campo de unidade do formulário
+                        document.getElementById('unidade').value = userData.unidade;
+                    } else {
+                        console.log("Documento do usuário não encontrado no Firestore!");
+                    }
                     
                     document.getElementById('loading-list').textContent = 'Carregando lista...';
                     comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
@@ -235,17 +253,38 @@
                 }
             });
 
+            // ALTERAÇÃO: O formulário de registro agora salva a unidade do usuário
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const unidade = registerForm['register-unidade'].value.trim().toUpperCase();
                 const email = registerForm['register-email'].value;
                 const password = registerForm['register-password'].value;
                 clearError(registerError);
 
+                if (!unidade) {
+                    showError(registerError, "O campo 'Sua Unidade' é obrigatório.");
+                    return;
+                }
+
                 try {
-                    await createUserWithEmailAndPassword(auth, email, password);
+                    // 1. Cria o usuário na autenticação
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+
+                    // 2. Salva a informação extra (unidade) no Firestore
+                    await setDoc(doc(db, "users", user.uid), {
+                        unidade: unidade,
+                        email: user.email
+                    });
+                    
                     registerForm.reset();
+                    // O onAuthStateChanged vai cuidar da tela
                 } catch (error) {
-                    showError(registerError, 'Erro ao cadastrar. Verifique o e-mail e a senha (mín. 6 caracteres).');
+                    if (error.code === 'auth/email-already-in-use') {
+                         showError(registerError, 'Este e-mail já está cadastrado.');
+                    } else {
+                         showError(registerError, 'Erro ao cadastrar. Verifique os dados.');
+                    }
                 }
             });
 
@@ -294,9 +333,8 @@
                 submitButton.disabled = true;
                 submitButton.textContent = 'Enviando...';
 
-                // NOVO: Adiciona o campo 'unidade' ao objeto do comunicado
                 const newComunicado = {
-                    unidade: form.unidade.value.trim().toUpperCase(), // NOVO
+                    unidade: form.unidade.value.trim().toUpperCase(),
                     titulo: form.titulo.value.trim(),
                     type: form.type.value,
                     duracao: form.duracao.value,
@@ -305,7 +343,6 @@
                     imageOnly: form.imageOnly.checked
                 };
                 
-                // NOVO: Validação para garantir que o campo unidade não está vazio
                 if (!newComunicado.unidade) {
                     showError(formError, "O campo 'Unidade' é obrigatório.");
                     resetFormState();
@@ -356,7 +393,15 @@
             async function saveComunicado(comunicadoData) {
                  try {
                     await addDoc(comunicadosCollection, comunicadoData);
-                    resetFormState();
+                    // Não reseta mais o formulário todo, para manter a unidade do usuário
+                    form.titulo.value = '';
+                    form.type.value = 'text_image';
+                    form.imageUpload.value = '';
+                    form.imageOnly.checked = false;
+                    form.texto.value = '';
+                    form.url.value = '';
+                    form.duracao.value = '10';
+                    resetFormState(); // Chama para reabilitar botão e esconder progresso
                 } catch (error) {
                     showError(formError, "Não foi possível salvar o comunicado.");
                     resetFormState();
@@ -364,7 +409,7 @@
             }
             
             function resetFormState() {
-                form.reset();
+                // Modificado para não limpar o campo unidade
                 typeSelect.dispatchEvent(new Event('change'));
                 imageOnlyCheckbox.dispatchEvent(new Event('change'));
                 submitButton.disabled = false;
@@ -380,18 +425,18 @@
                     const listContainer = document.getElementById('comunicados-list');
                     if (snapshot.empty) return listContainer.innerHTML = '<p>Nenhum comunicado cadastrado.</p>';
                     
-                    // NOVO: Converte os documentos para um array para poder ordená-los
                     const comunicados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
-                    // NOVO: Ordena os comunicados por unidade e depois por data de criação
                     comunicados.sort((a, b) => {
                         if (a.unidade < b.unidade) return -1;
                         if (a.unidade > b.unidade) return 1;
-                        return b.createdAt - a.createdAt; // Mais recente primeiro
+                        const dateA = a.createdAt.toDate ? a.createdAt.toDate() : a.createdAt;
+                        const dateB = b.createdAt.toDate ? b.createdAt.toDate() : b.createdAt;
+                        return dateB - dateA;
                     });
 
                     listContainer.innerHTML = '';
-                    comunicados.forEach(data => { // NOVO: Itera sobre a lista ordenada
+                    comunicados.forEach(data => {
                         const div = document.createElement('div');
                         div.className = 'border p-4 rounded-lg bg-gray-50 flex justify-between items-start';
                         
@@ -401,7 +446,6 @@
                         let description = data.url ? data.url : (data.texto || '').substring(0, 50) + '...';
                         if (data.imageOnly) description = 'Exibição de imagem em tela cheia.';
                         
-                        // NOVO: Adiciona a unidade na exibição da lista
                         div.innerHTML = `
                             <div>
                                 <h3 class="font-bold">${data.titulo}</h3>
