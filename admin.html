@@ -37,8 +37,11 @@
 <body class="min-h-screen">
 
     <header class="header shadow-md p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-center">Painel de Administração do Mural</h1>
-        <button id="logout-button" class="hidden btn-danger font-bold py-2 px-4 rounded-lg">Sair</button>
+        <h1 class="text-2xl font-bold">Painel de Administração</h1>
+        <div id="user-info-container" class="hidden flex items-center gap-4">
+            <span id="user-email" class="text-sm font-medium"></span>
+            <button id="logout-button" class="btn-danger font-bold py-2 px-3 rounded-lg text-sm">Sair</button>
+        </div>
     </header>
 
     <div id="auth-container" class="container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -172,13 +175,17 @@
         const adminContent = document.getElementById('admin-content');
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
-        const logoutButton = document.getElementById('logout-button');
         const showRegisterLink = document.getElementById('show-register');
         const showLoginLink = document.getElementById('show-login');
         const loginError = document.getElementById('login-error');
         const registerError = document.getElementById('register-error');
         const formError = document.getElementById('form-error');
         const loadingList = document.getElementById('loading-list');
+
+        // ALTERAÇÃO: Seletores para os novos elementos do cabeçalho
+        const userInfoContainer = document.getElementById('user-info-container');
+        const userEmailSpan = document.getElementById('user-email');
+        const logoutButton = document.getElementById('logout-button');
 
         let unsubscribeListener = null;
 
@@ -229,7 +236,10 @@
                 if (user) {
                     authContainer.classList.add('hidden');
                     adminContent.classList.remove('hidden');
-                    logoutButton.classList.remove('hidden');
+                    
+                    // ALTERAÇÃO: Exibe o e-mail e o container no cabeçalho
+                    userEmailSpan.textContent = user.email;
+                    userInfoContainer.classList.remove('hidden');
                     
                     comunicadosCollection = collection(db, `artifacts/${appId}/public/data/comunicados`);
 
@@ -251,9 +261,11 @@
                     }
                     authContainer.classList.remove('hidden');
                     adminContent.classList.add('hidden');
-                    logoutButton.classList.add('hidden');
+                    
+                    // ALTERAÇÃO: Esconde o container de informações do usuário
+                    userInfoContainer.classList.add('hidden');
+                    
                     loadingList.textContent = 'Aguardando login...';
-                    // ALTERAÇÃO: A linha que causava o bug foi removida daqui.
                 }
             });
 
@@ -419,7 +431,6 @@
 
                 unsubscribeListener = onSnapshot(q, (snapshot) => {
                     const listContainer = document.getElementById('comunicados-list');
-                    // Limpa a lista antes de adicionar os novos itens
                     listContainer.innerHTML = ''; 
 
                     if (snapshot.empty) {
