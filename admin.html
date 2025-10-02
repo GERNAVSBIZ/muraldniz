@@ -178,8 +178,8 @@
         const loginError = document.getElementById('login-error');
         const registerError = document.getElementById('register-error');
         const formError = document.getElementById('form-error');
+        const loadingList = document.getElementById('loading-list');
 
-        // ALTERAÇÃO 1: Variável para guardar a função de "desligar" o ouvinte
         let unsubscribeListener = null;
 
         function showError(element, message) {
@@ -242,10 +242,9 @@
                         loadComunicados(userData.unidade);
                     } else {
                         console.log("Documento do usuário não encontrado no Firestore!");
-                        document.getElementById('loading-list').textContent = 'Erro: dados do usuário não encontrados.';
+                        loadingList.textContent = 'Erro: dados do usuário não encontrados.';
                     }
                 } else {
-                    // ALTERAÇÃO 2: Se o usuário sair, desliga o ouvinte
                     if (unsubscribeListener) {
                         unsubscribeListener();
                         unsubscribeListener = null;
@@ -253,8 +252,8 @@
                     authContainer.classList.remove('hidden');
                     adminContent.classList.add('hidden');
                     logoutButton.classList.add('hidden');
-                    document.getElementById('loading-list').textContent = 'Aguardando login...';
-                    document.getElementById('comunicados-list').innerHTML = '<p>Aguardando login...</p>';
+                    loadingList.textContent = 'Aguardando login...';
+                    // ALTERAÇÃO: A linha que causava o bug foi removida daqui.
                 }
             });
 
@@ -404,24 +403,25 @@
             }
 
             function loadComunicados(unidadeDoUsuario) {
-                // ALTERAÇÃO 3: Desliga qualquer ouvinte anterior antes de criar um novo
                 if (unsubscribeListener) {
                     unsubscribeListener();
                 }
                 
                 if (!unidadeDoUsuario) {
-                    document.getElementById('comunicados-list').innerHTML = '<p>Unidade do usuário não encontrada.</p>';
+                    loadingList.innerHTML = '<p>Unidade do usuário não encontrada.</p>';
                     return;
                 }
                 
-                document.getElementById('loading-list').textContent = `Carregando comunicados para ${unidadeDoUsuario}...`;
+                loadingList.textContent = `Carregando comunicados para ${unidadeDoUsuario}...`;
 
                 const comunicadosRef = collection(db, `artifacts/${appId}/public/data/comunicados`);
                 const q = query(comunicadosRef, where("unidade", "==", unidadeDoUsuario));
 
-                // ALTERAÇÃO 4: Guarda a função de "desligar" na nossa variável
                 unsubscribeListener = onSnapshot(q, (snapshot) => {
                     const listContainer = document.getElementById('comunicados-list');
+                    // Limpa a lista antes de adicionar os novos itens
+                    listContainer.innerHTML = ''; 
+
                     if (snapshot.empty) {
                         listContainer.innerHTML = `<p>Nenhum comunicado cadastrado para a unidade ${unidadeDoUsuario}.</p>`;
                         return;
@@ -435,7 +435,6 @@
                         return dateB - dateA;
                     });
 
-                    listContainer.innerHTML = '';
                     comunicados.forEach(data => {
                         const div = document.createElement('div');
                         div.className = 'border p-4 rounded-lg bg-gray-50 flex justify-between items-start';
@@ -469,7 +468,7 @@
                     });
                 }, (error) => {
                     console.error("Erro ao carregar comunicados: ", error);
-                    document.getElementById('loading-list').textContent = 'Erro ao carregar comunicados.';
+                    loadingList.textContent = 'Erro ao carregar comunicados.';
                 });
             }
 
